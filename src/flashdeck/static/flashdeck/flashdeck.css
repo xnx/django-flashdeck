@@ -33,7 +33,12 @@
 .flashdeck p { margin: 0.5rem 0; }
 .flashdeck a { color: var(--fd-accent); }
 
+.flashdeck-topbar {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+  gap: 0.25rem 1rem; margin-bottom: 1rem; font-size: 0.875rem; color: var(--fd-muted);
+}
 .flashdeck-crumbs { font-size: 0.875rem; color: var(--fd-muted); margin-bottom: 1rem; }
+.flashdeck-topbar .flashdeck-crumbs { margin-bottom: 0; }
 .flashdeck-crumbs a { color: inherit; }
 .flashdeck-muted { color: var(--fd-muted); font-size: 0.875rem; }
 
@@ -132,6 +137,7 @@
   margin-bottom: 0.75rem; padding: 0.5rem 0.75rem; font-size: 0.875rem;
   border: 1px solid var(--fd-line); border-radius: 0.5rem;
 }
+.flashdeck-account { margin-left: auto; }
 .flashdeck-account form { display: inline; }
 .flashdeck-setting { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .flashdeck-setting form { margin: 0; }

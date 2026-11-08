@@ -1,9 +1,10 @@
 {% extends "flashdeck/page.html" %}
+{% load flashdeck_tags %}
 {% block flashdeck_title %}Progress · Flashcards{% endblock %}
 {% block flashdeck_content %}
 {% include "flashdeck/_assets.html" %}
 <div class="flashdeck">
-  <nav class="flashdeck-crumbs" aria-label="Breadcrumb">{% include "flashdeck/_crumbs_root.html" %}<a href="{% url 'flashdeck:index' %}">Flashcards</a> / <span>Progress</span></nav>
+  <div class="flashdeck-topbar"><nav class="flashdeck-crumbs" aria-label="Breadcrumb">{% include "flashdeck/_crumbs_root.html" %}<a href="{% url 'flashdeck:index' %}">Flashcards</a> / <span>Progress</span></nav>{% flashdeck_account %}</div>
   <h1>Progress</h1>
 
   <ul class="flashdeck-tiles">

@@ -25,7 +25,7 @@ urlpatterns = [
 
 Subjects, decks, cards and claimed answers (see "Marking") are edited in Django's admin and, on a Wagtail site, in Wagtail's admin under *Flashcards*. A deck is either public, for anyone to practise, or private, for users with the permission *Can practise private decks* (`flashdeck.practise_private`), which superusers have.
 
-Practising needs no account: a visitor who is not logged in is shown cards from the public decks at random, and nothing is stored. A logged-in user's answers are stored, for scheduling and scores. The index links to the site's login page (Django's `LOGIN_URL`) for visitors, if the site has one, and offers logged-in users a Log out button if `FLASHDECK_LOGOUT_URL` is set.
+Practising needs no account: a visitor who is not logged in is shown cards from the public decks at random, and nothing is stored. A logged-in user's answers are stored, for scheduling and scores. The top of every page links to the site's login page (Django's `LOGIN_URL`, and back), if the site has one; for a logged-in user, it shows their name and, if `FLASHDECK_LOGOUT_URL` is set, a Log out button.
 
 ## Settings
 

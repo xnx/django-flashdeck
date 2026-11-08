@@ -3,7 +3,7 @@
 {% block flashdeck_content %}
 {% if not fragment %}{% include "flashdeck/_assets.html" %}{% endif %}
 <div class="flashdeck">
-  {% if not fragment %}<nav class="flashdeck-crumbs" aria-label="Breadcrumb">{% include "flashdeck/_crumbs_root.html" %}<a href="{% url 'flashdeck:index' %}">Flashcards</a> / <a href="{% url 'flashdeck:subject' subject.slug %}">{{ subject.title }}</a> / <span>Reference</span></nav>{% endif %}
+  {% if not fragment %}<div class="flashdeck-topbar"><nav class="flashdeck-crumbs" aria-label="Breadcrumb">{% include "flashdeck/_crumbs_root.html" %}<a href="{% url 'flashdeck:index' %}">Flashcards</a> / <a href="{% url 'flashdeck:subject' subject.slug %}">{{ subject.title }}</a> / <span>Reference</span></nav>{% flashdeck_account %}</div>{% endif %}
   <h1>{{ subject.title }}: reference</h1>
   {% if subject.reference %}<div class="flashdeck-prose">{{ subject.reference|flashdeck_markdown }}</div>{% endif %}
   <h2>Decks</h2>

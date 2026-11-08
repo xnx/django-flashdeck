@@ -1,9 +1,10 @@
 {% extends "flashdeck/page.html" %}
+{% load flashdeck_tags %}
 {% block flashdeck_title %}Flashcards{% endblock %}
 {% block flashdeck_content %}
 {% include "flashdeck/_assets.html" %}
 <div class="flashdeck">
-  <nav class="flashdeck-crumbs" aria-label="Breadcrumb">{% include "flashdeck/_crumbs_root.html" %}<span>Flashcards</span></nav>
+  <div class="flashdeck-topbar"><nav class="flashdeck-crumbs" aria-label="Breadcrumb">{% include "flashdeck/_crumbs_root.html" %}<span>Flashcards</span></nav>{% flashdeck_account %}</div>
   <h1>Flashcards</h1>
   {% for subject in subjects %}
   <section>
@@ -23,13 +24,6 @@
   <p>There are no decks yet.</p>
   {% endfor %}
   {% if user_logged_in %}<p class="flashdeck-minor"><a href="{% url 'flashdeck:progress' %}">Progress</a></p>{% endif %}
-  <div class="flashdeck-minor flashdeck-account">
-    {% if user_logged_in %}
-    Logged in as {{ user_name }}{% if logout_url %}. <form method="post" action="{{ logout_url }}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'flashdeck:index' %}"><button type="submit" class="flashdeck-link">Log out</button></form>{% endif %}
-    {% elif login_url %}
-    Have an account? <a href="{{ login_url }}?next={% url 'flashdeck:index' %}">Log in</a> to keep your scores.
-    {% endif %}
-  </div>
   {% if has_settings %}<p class="flashdeck-minor"><a href="{% url 'flashdeck:settings' %}">Hidden cards, and cards shown more or less often</a></p>{% endif %}
 </div>
 {% endblock %}
