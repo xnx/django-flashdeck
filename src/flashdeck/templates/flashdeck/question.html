@@ -15,6 +15,7 @@
   <form method="post" action="{{ scope_url }}" class="flashdeck-card" data-flashdeck-form>
     {% csrf_token %}
     <input type="hidden" name="card" value="{{ card.pk }}">
+    <input type="hidden" name="looked_up" value="0" data-flashdeck-looked-up>
     {% include "flashdeck/_prompt.html" %}
     {% for answer in answers %}
     <div class="flashdeck-row">
@@ -30,8 +31,10 @@
     <div class="flashdeck-actions">
       <button type="submit" class="flashdeck-primary">Mark</button>
       <a class="flashdeck-button" href="{{ scope_url }}?after={{ card.pk }}">Skip</a>
+      <button type="button" class="flashdeck-button" data-flashdeck-reference="{% url 'flashdeck:deck_reference' card.deck.subject.slug card.deck.slug %}" aria-keyshortcuts="Meta+K Control+K" title="Reference (⌘K or Ctrl+K)">Reference</button>
     </div>
   </form>
+  {% include "flashdeck/_reference_dialog.html" with looking_up=logged_in %}
   {% if logged_in %}
   <form method="post" action="{{ scope_url }}" class="flashdeck-minor">
     {% csrf_token %}

@@ -46,6 +46,15 @@ RATINGS = {
 }
 
 
+def effective_verdict(verdict: str, looked_up: bool) -> Verdict:
+    """The verdict that schedules a card: a right answer given after looking at the
+    reference counts as nearly right, so that the card comes back sooner."""
+    verdict = Verdict(verdict)
+    if looked_up and verdict in (Verdict.RIGHT, Verdict.CLAIMED):
+        return Verdict.NEARLY
+    return verdict
+
+
 def schedule(
     state: dict | None,
     verdict: str,

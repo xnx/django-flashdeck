@@ -1,0 +1,5 @@
+<div class="flashdeck-search">
+  <label class="flashdeck-hidden" for="flashdeck-search">Search</label>
+  <input id="flashdeck-search" type="search" placeholder="Search every form, such as {{ example|default:'a word' }}" data-flashdeck-search="{{ target }}"{% if subject.language %} lang="{{ subject.language }}"{% endif %} autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+  <span class="flashdeck-muted" data-flashdeck-search-status aria-live="polite"></span>
+</div>

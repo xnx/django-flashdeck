@@ -151,3 +151,15 @@ def test_the_commands(db, tmp_path, capsys):
     call_command("flashdeck_export", "french", str(tmp_path / "out"))
     assert "3 cards written" in capsys.readouterr().out
     assert (tmp_path / "out" / "images" / "animals").is_dir()
+
+
+def test_reference_text_travels_with_a_bundle(db, tmp_path):
+    data = yaml.safe_load(yaml.safe_dump(BUNDLE))
+    data["subject"]["reference"] = "*j’* before a vowel"
+    data["decks"][0]["reference"] = "| je | -ais |\n|---|---|\n| tu | -ais |"
+    import_bundle(write_bundle(tmp_path / "french", data))
+    assert Subject.objects.get().reference == "*j’* before a vowel"
+    assert Deck.objects.get(slug="conditionnel").reference.startswith("| je | -ais |")
+    export_bundle(Subject.objects.get(), tmp_path / "out")
+    manifest = (tmp_path / "out" / "cards.yaml").read_text()
+    assert "reference: |-\n    | je | -ais |" in manifest

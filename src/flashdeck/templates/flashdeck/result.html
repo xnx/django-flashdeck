@@ -7,6 +7,7 @@
   <div class="flashdeck-card">
     {% include "flashdeck/_prompt.html" %}
     <p class="flashdeck-verdict flashdeck-{{ verdict }}" role="status">{{ verdict.label }}</p>
+    {% if review.looked_up and verdict != "wrong" and verdict != "nearly" %}<p class="flashdeck-muted">You looked at the reference first, so this counts as nearly right for when the card comes back.</p>{% endif %}
     <form method="post" action="{{ scope_url }}">
       {% csrf_token %}
       {% if review %}<input type="hidden" name="review" value="{{ review.pk }}">{% endif %}
@@ -27,8 +28,10 @@
     <form method="get" action="{{ scope_url }}" class="flashdeck-actions">
       <input type="hidden" name="after" value="{{ card.pk }}">
       <button type="submit" class="flashdeck-primary" autofocus>Next card</button>
+      <button type="button" class="flashdeck-button" data-flashdeck-reference="{% url 'flashdeck:deck_reference' card.deck.subject.slug card.deck.slug %}" aria-keyshortcuts="Meta+K Control+K" title="Reference (⌘K or Ctrl+K)">Reference</button>
       {% if state.due and not state.suspended %}<span class="flashdeck-muted">This card comes back in {{ state.due|timeuntil }}.</span>{% endif %}
     </form>
+    {% if today %}<p class="flashdeck-muted flashdeck-today">Today: {{ today.total }} answered, {{ today.percent_right }}% right{% if days_in_a_row > 1 %}; {{ days_in_a_row }} days in a row{% endif %}. <a href="{% url 'flashdeck:progress' %}">Progress</a></p>{% endif %}
     {% if review and state %}
     <details class="flashdeck-options"{% if state.suspended or state.frequency != "normal" %} open{% endif %}>
       <summary>Card options</summary>
@@ -48,5 +51,6 @@
     </details>
     {% endif %}
   </div>
+  {% include "flashdeck/_reference_dialog.html" %}
 </div>
 {% endblock %}

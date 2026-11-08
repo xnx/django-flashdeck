@@ -1,0 +1,3 @@
+<ul class="flashdeck-forms" style="--flashdeck-rows: {{ rows }}">
+  {% for form in forms %}<li><span{% if subject.language %} lang="{{ subject.language }}"{% endif %}><span class="flashdeck-muted">{{ form.prefix }}</span><strong>{{ form.text }}</strong></span>{% if form.alternatives %} <span class="flashdeck-muted">(also <span{% if subject.language %} lang="{{ subject.language }}"{% endif %}>{{ form.alternatives|join:", " }}</span>)</span>{% endif %}</li>{% endfor %}
+</ul>

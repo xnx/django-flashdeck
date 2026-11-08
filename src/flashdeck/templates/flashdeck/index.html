@@ -8,6 +8,7 @@
   {% for subject in subjects %}
   <section>
     <h2><a href="{% url 'flashdeck:subject' subject.slug %}">{{ subject.title }}</a>{% if subject.due %} <span class="flashdeck-due">{{ subject.due }} due</span>{% endif %}</h2>
+    <p class="flashdeck-muted"><a href="{% url 'flashdeck:subject_reference' subject.slug %}">Reference</a></p>
     {% if subject.description %}<p>{{ subject.description }}</p>{% endif %}
     <ul class="flashdeck-decks">
       {% for deck in subject.deck_list %}
@@ -21,6 +22,7 @@
   {% empty %}
   <p>There are no decks yet.</p>
   {% endfor %}
+  {% if user_logged_in %}<p class="flashdeck-minor"><a href="{% url 'flashdeck:progress' %}">Progress</a></p>{% endif %}
   {% if has_settings %}<p class="flashdeck-minor"><a href="{% url 'flashdeck:settings' %}">Hidden cards, and cards shown more or less often</a></p>{% endif %}
 </div>
 {% endblock %}

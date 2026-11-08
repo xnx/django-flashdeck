@@ -94,6 +94,7 @@ def _import(data, source, update):
     values = {
         "title": _text(fields.get("title"), "subject title", required=True),
         "description": _text(fields.get("description"), "subject description"),
+        "reference": _text(fields.get("reference"), "subject reference"),
         "language": _text(fields.get("language"), "subject language"),
         "characters": _text(characters, "subject characters"),
         "case_sensitive": bool(fields.get("case_sensitive", False)),
@@ -108,6 +109,7 @@ def _import(data, source, update):
         values = {
             "title": _text(deck_data.get("title"), f"{where}: title", required=True),
             "description": _text(deck_data.get("description"), f"{where}: description"),
+            "reference": _text(deck_data.get("reference"), f"{where}: reference"),
             "is_public": bool(deck_data.get("public", False)),
             "position": position,
         }
@@ -283,11 +285,13 @@ def export_bundle(subject, path):
         deck_entry = {"slug": deck.slug, "title": deck.title}
         if deck.description:
             deck_entry["description"] = deck.description
+        if deck.reference:
+            deck_entry["reference"] = deck.reference
         deck_entry["public"] = deck.is_public
         deck_entry["cards"] = cards
         decks.append(deck_entry)
     subject_entry = {"slug": subject.slug, "title": subject.title}
-    for field in ("description", "language", "characters"):
+    for field in ("description", "language", "characters", "reference"):
         if getattr(subject, field):
             subject_entry[field] = getattr(subject, field)
     if subject.case_sensitive:

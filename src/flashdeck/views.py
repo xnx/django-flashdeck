@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
+from . import reference, stats
 from .marking import Verdict
 from .models import Card, CardState, Review, Subject
 from .practice import (
@@ -57,7 +58,11 @@ def index(request):
     return render(
         request,
         "flashdeck/index.html",
-        {"subjects": subjects.values(), "has_settings": has_settings},
+        {
+            "subjects": subjects.values(),
+            "has_settings": has_settings,
+            "user_logged_in": request.user.is_authenticated,
+        },
     )
 
 
@@ -176,7 +181,8 @@ def _answer(request, cards, context):
     }
     results, verdict = mark_card(card, answers, given, request.user)
     if request.user.is_authenticated:
-        review = record_review(request.user, card, results, verdict)
+        looked_up = request.POST.get("looked_up") == "1"
+        review = record_review(request.user, card, results, verdict, looked_up)
         return redirect(f"{request.path}?review={review.pk}")
     return _result(request, context, card, results, verdict, None)
 
@@ -245,6 +251,7 @@ def _result(request, context, card, results, verdict, review):
     state = None
     if review is not None:
         state = CardState.objects.filter(user=review.user, card=card).first()
+        context["today"], context["days_in_a_row"] = stats.today(review.user)
     context.update(
         card=card,
         rows=rows,
@@ -270,3 +277,116 @@ def _nothing_due(request, context, cards):
         quota_reached=new_cards_left(request.user) <= 0,
     )
     return render(request, "flashdeck/nothing_due.html", context)
+
+
+def progress(request):
+    """The user's scores: today's, each day's for the last month, each deck's, and
+    the cards and answers most often missed."""
+    if not request.user.is_authenticated:
+        raise Http404("Log in to see your progress")
+    user = request.user
+    deck_list = list(visible_decks(user))
+    days = stats.daily(user)
+    most = max(day.total for day in days)
+    for day in days:
+        day.height = f"{day.bar_height(most):.1f}"
+        day.label = f"{day.date.day} {day.date:%B}: {day.total} answered" + (
+            f" ({day.right} right, {day.nearly} nearly right, {day.wrong} wrong)"
+            if day.total
+            else ""
+        )
+    tally, days_in_a_row = stats.today(user)
+    return render(
+        request,
+        "flashdeck/progress.html",
+        {
+            "days": days,
+            "most": most,
+            "today": tally,
+            "days_in_a_row": days_in_a_row,
+            "decks": [row for row in stats.decks(user, deck_list) if row.cards],
+            "missed_cards": stats.most_missed_cards(user, deck_list),
+            "missed_answers": stats.most_missed_answers(user, deck_list),
+            "has_settings": _changed_states(user).exists(),
+        },
+    )
+
+
+def _reference_page(request, template, subject, context):
+    """Renders a reference page, or, with ?fragment=1, only its content, for the
+    reference opened from a card."""
+    fragment = request.GET.get("fragment") == "1"
+    context.update(
+        subject=subject,
+        fragment=fragment,
+        base_template="flashdeck/fragment.html" if fragment else "flashdeck/page.html",
+    )
+    return render(request, template, context)
+
+
+def _visible_subject(request, slug):
+    subject = get_object_or_404(Subject, slug=slug)
+    decks = list(visible_decks(request.user).filter(subject=subject))
+    if not decks:
+        raise Http404("No decks")
+    return subject, decks
+
+
+def subject_reference(request, subject):
+    """A subject's reference: its own text, its decks, and an index of its items
+    (the cards that share a key across its decks), with a search."""
+    subject, decks = _visible_subject(request, subject)
+    return _reference_page(
+        request,
+        "flashdeck/reference_subject.html",
+        subject,
+        {"decks": decks, "items": reference.items(decks)},
+    )
+
+
+def deck_reference(request, subject, deck):
+    """A deck's reference: its own text and its cards as a table, with a search."""
+    subject, decks = _visible_subject(request, subject)
+    deck = next((d for d in decks if d.slug == deck), None)
+    if deck is None:
+        raise Http404("No such deck")
+    rows = [
+        {
+            "card": card,
+            "name": reference.name(card),
+            "forms": reference.forms(card),
+            "rows": reference.rows(card),
+            "search": reference.search_text([card]),
+        }
+        for card in reference.cards_in([deck])
+    ]
+    return _reference_page(
+        request,
+        "flashdeck/reference_deck.html",
+        subject,
+        {"deck": deck, "rows": rows},
+    )
+
+
+def item_reference(request, subject, key):
+    """One item of a subject: its card in each deck (for a verb, every tense)."""
+    subject, decks = _visible_subject(request, subject)
+    cards = list(reference.cards_in(decks).filter(key=key))
+    if not cards:
+        raise Http404("No such item")
+    titles = reference.short_titles(decks)
+    sections = [
+        {
+            "title": titles[card.deck_id],
+            "card": card,
+            "forms": reference.forms(card),
+            "rows": reference.rows(card),
+        }
+        for card in cards
+    ]
+    return _reference_page(
+        request,
+        "flashdeck/reference_item.html",
+        subject,
+        {"name": reference.name(cards[0]), "sections": sections},
+    )

@@ -1,0 +1,28 @@
+{% extends base_template %}{% load flashdeck_tags %}
+{% block flashdeck_title %}{{ deck.title }}: reference · Flashcards{% endblock %}
+{% block flashdeck_content %}
+{% if not fragment %}{% include "flashdeck/_assets.html" %}{% endif %}
+<div class="flashdeck">
+  {% if not fragment %}<nav class="flashdeck-crumbs" aria-label="Breadcrumb">{% include "flashdeck/_crumbs_root.html" %}<a href="{% url 'flashdeck:index' %}">Flashcards</a> / <a href="{% url 'flashdeck:subject_reference' subject.slug %}">{{ subject.title }}: reference</a> / <span>{{ deck.title }}</span></nav>{% endif %}
+  <h1>{{ deck.title }}</h1>
+  {% if deck.reference %}<div class="flashdeck-prose">{{ deck.reference|flashdeck_markdown }}</div>{% endif %}
+  {% include "flashdeck/_search.html" with target="[data-flashdeck-row]" example=rows.0.forms.0.text %}
+  <table class="flashdeck-reference-table">
+    <tbody>
+      {% for row in rows %}
+      <tr data-flashdeck-row data-search="{{ row.search }}">
+        <th scope="row">
+          {% if row.card.image %}<img src="{{ row.card.image.url }}" alt="{{ row.card.image_alt }}" class="flashdeck-thumb">{% endif %}
+          <a data-flashdeck-ref href="{% url 'flashdeck:item_reference' subject.slug row.card.key %}">{{ row.name }}</a>
+        </th>
+        <td>
+          {% include "flashdeck/_forms.html" with forms=row.forms rows=row.rows %}
+          {% if row.card.notes %}<p class="flashdeck-muted">{{ row.card.notes }}</p>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="flashdeck-minor"><a data-flashdeck-ref href="{% url 'flashdeck:subject_reference' subject.slug %}">{{ subject.title }}: all decks and the index</a></p>
+</div>
+{% endblock %}

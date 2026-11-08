@@ -64,6 +64,29 @@ How often a card comes back is set by the chance of remembering it that FSRS aim
 The app's own pages take the slugs `settings`, `progress` and `reference`, which a subject or deck therefore cannot have.
 
 
+## Progress
+
+The Progress page (`progress/`, for logged-in users) shows:
+
+- the number of cards answered today, the percentage right and the number of days in a row with at least one answer;
+- the answers on each of the last 30 days, as a bar chart split into right, nearly right and wrong (with the same figures as a table);
+- for each deck, the cards seen, those *well learnt* (coming back after 21 days or more), those due, and the percentage right over the last 30 days;
+- the cards most often missed (answered wrong or nearly right), and, for decks whose cards have labelled answers, the labels most often missed, such as the *nous* form of the subjonctif.
+
+A right answer given after looking at the reference counts as nearly right, as it does for scheduling. The result of each answer also shows a one-line summary of the day.
+
+## Reference
+
+Each subject, deck and *item* has a reference page, generated from the cards:
+
+- a deck's page (`<subject>/<deck>/reference/`) shows the deck's cards as a table, with their answers and notes;
+- an item's page (`<subject>/reference/<key>/`) shows the cards that share a key across the subject's decks; for a subject whose decks are the tenses of verbs, keyed by verb, that is one verb in every tense;
+- a subject's page (`<subject>/reference/`) lists its decks and an index of its items.
+
+A subject and a deck can also have reference text of their own (rules, tables of endings, exceptions), written in Markdown with tables, which heads its page. Only editors write it, and it is not sanitised. Each page has a search, which narrows the table or index as one types, ignoring accents, capitals and punctuation, and matches every prompt and every accepted answer, so that a form met in a text (*serais*) finds its verb.
+
+On a card, the *Reference* button or ⌘K (Ctrl+K) opens the card's deck reference in a dialog over the card, so that what has been typed is kept; its links open within the dialog, and Esc closes it. Opening it before marking makes a right answer count as nearly right, so that the card comes back sooner.
+
 ## Images
 
 Card images are stored with the site's media files, in `<FLASHDECK_UPLOAD_DIR>/<subject>/`, under random names: a file named after its subject (`beagle.jpg`) would give the answer away in the page. Photographs (PNG, JPEG and WebP) are reduced to `FLASHDECK_IMAGE_MAX_SIZE`, turned the right way up and stripped of their metadata (EXIF, XMP and comments), which often names what they show; only their colour profile is kept. SVG images are stored as they are. An SVG file can contain scripts, so only trusted editors should be able to upload one. A replaced image's file is deleted, as is a deleted card's.
@@ -82,10 +105,13 @@ subject:
   language: fr                      # for screen readers and phone keyboards
   characters: à â ç é è ê î ô ù û   # buttons for typing them
   case_sensitive: false
+  reference: …                      # Markdown, for the subject's reference page
 decks:
 - slug: conditionnel
   title: 'Irregular verbs: conditionnel présent'
   public: false
+  reference: |-
+    The stem of the futur simple with the endings of the imparfait.
   cards:
   - key: etre                       # identifies the card within its deck
     prompt: |-

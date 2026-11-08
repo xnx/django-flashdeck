@@ -1,0 +1,18 @@
+{% extends base_template %}{% load flashdeck_tags %}
+{% block flashdeck_title %}{{ name }}: reference · Flashcards{% endblock %}
+{% block flashdeck_content %}
+{% if not fragment %}{% include "flashdeck/_assets.html" %}{% endif %}
+<div class="flashdeck">
+  {% if not fragment %}<nav class="flashdeck-crumbs" aria-label="Breadcrumb">{% include "flashdeck/_crumbs_root.html" %}<a href="{% url 'flashdeck:index' %}">Flashcards</a> / <a href="{% url 'flashdeck:subject_reference' subject.slug %}">{{ subject.title }}: reference</a> / <span>{{ name }}</span></nav>{% endif %}
+  <h1>{{ name }}</h1>
+  {% for section in sections %}
+  <section class="flashdeck-section">
+    <h2><a data-flashdeck-ref href="{% url 'flashdeck:deck_reference' subject.slug section.card.deck.slug %}">{{ section.title }}</a></h2>
+    {% if section.card.image %}<img src="{{ section.card.image.url }}" alt="{{ section.card.image_alt }}" class="flashdeck-thumb">{% endif %}
+    {% include "flashdeck/_forms.html" with forms=section.forms rows=section.rows %}
+    {% if section.card.notes %}<p class="flashdeck-muted">{{ section.card.notes }}</p>{% endif %}
+  </section>
+  {% endfor %}
+  <p class="flashdeck-minor"><a data-flashdeck-ref href="{% url 'flashdeck:subject_reference' subject.slug %}">{{ subject.title }}: all decks and the index</a></p>
+</div>
+{% endblock %}

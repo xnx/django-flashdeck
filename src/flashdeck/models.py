@@ -31,6 +31,11 @@ class Subject(models.Model):
     slug = models.SlugField(unique=True, validators=[validate_not_reserved])
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
+    reference = models.TextField(
+        blank=True,
+        help_text="Reference material, in Markdown (tables included), shown with "
+        "the cards' own reference pages and opened from a card.",
+    )
     language = models.CharField(
         max_length=35,
         blank=True,
@@ -72,6 +77,11 @@ class Deck(models.Model):
     )
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
+    reference = models.TextField(
+        blank=True,
+        help_text="Reference material, in Markdown (tables included), shown with "
+        "the cards' own reference pages and opened from a card.",
+    )
     is_public = models.BooleanField(
         "public",
         default=False,
@@ -265,6 +275,9 @@ class Review(models.Model):
     # The card's FSRS state before this review (None for a new card), so that it
     # can be rescheduled if the user claims that an answer was right.
     state_before = models.JSONField(null=True, blank=True)
+    # The user opened the reference before marking, so a right answer is scheduled
+    # as nearly right.
+    looked_up = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-created", "-id"]

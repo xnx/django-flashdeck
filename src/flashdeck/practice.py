@@ -10,7 +10,7 @@ from django.utils import timezone
 from .conf import setting
 from .marking import Verdict, combine, mark
 from .models import Answer, CardState, ClaimedAnswer, Deck, Review
-from .scheduling import Frequency, due_of, schedule
+from .scheduling import Frequency, due_of, effective_verdict, schedule
 
 NEW_CARD_ORDER = [
     "deck__subject__position",
@@ -113,14 +113,17 @@ def mark_card(card, answers, given, user):
 
 
 @transaction.atomic
-def record_review(user, card, results, verdict):
-    """Saves a marked answer and reschedules the card."""
+def record_review(user, card, results, verdict, looked_up=False):
+    """Saves a marked answer and reschedules the card (as if nearly right if the
+    user looked at the reference first and was right)."""
     now = timezone.now()
     state = CardState.objects.select_for_update().filter(user=user, card=card).first()
     if state is None:
         state = CardState(user=user, card=card)
     before = state.fsrs
-    after = schedule(before, verdict, now, card.pk, state.frequency)
+    after = schedule(
+        before, effective_verdict(verdict, looked_up), now, card.pk, state.frequency
+    )
     state.fsrs = after
     state.due = due_of(after)
     state.save()
@@ -131,6 +134,7 @@ def record_review(user, card, results, verdict):
         verdict=verdict,
         results=results,
         state_before=before,
+        looked_up=looked_up,
     )
 
 
@@ -190,7 +194,7 @@ def _reschedule(state):
         return False
     state.fsrs = schedule(
         review.state_before,
-        review.verdict,
+        effective_verdict(review.verdict, review.looked_up),
         review.created,
         state.card_id,
         state.frequency,

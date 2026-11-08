@@ -1,0 +1,79 @@
+{% extends "flashdeck/page.html" %}
+{% block flashdeck_title %}Progress · Flashcards{% endblock %}
+{% block flashdeck_content %}
+{% include "flashdeck/_assets.html" %}
+<div class="flashdeck">
+  <nav class="flashdeck-crumbs" aria-label="Breadcrumb">{% include "flashdeck/_crumbs_root.html" %}<a href="{% url 'flashdeck:index' %}">Flashcards</a> / <span>Progress</span></nav>
+  <h1>Progress</h1>
+
+  <ul class="flashdeck-tiles">
+    <li><strong>{{ today.total }}</strong> answered today</li>
+    <li><strong>{% if today.total %}{{ today.percent_right }}%{% else %}–{% endif %}</strong> right today</li>
+    <li><strong>{{ days_in_a_row }}</strong> day{{ days_in_a_row|pluralize }} in a row</li>
+  </ul>
+
+  <figure class="flashdeck-chart">
+    <figcaption>Answers on each of the last {{ days|length }} days</figcaption>
+    <ul class="flashdeck-legend">
+      <li><span class="flashdeck-swatch flashdeck-bar-right"></span>Right</li>
+      <li><span class="flashdeck-swatch flashdeck-bar-nearly"></span>Nearly right</li>
+      <li><span class="flashdeck-swatch flashdeck-bar-wrong"></span>Wrong</li>
+    </ul>
+    <div class="flashdeck-plot">
+      {% if most %}<span class="flashdeck-plot-max" aria-hidden="true">{{ most }}</span>{% endif %}
+      <ol class="flashdeck-bars">
+        {% for day in days %}
+        <li class="flashdeck-day" tabindex="0" title="{{ day.label }}" aria-label="{{ day.label }}">
+          {% if day.total %}<span class="flashdeck-stack" style="height: {{ day.height }}%">{% if day.wrong %}<span class="flashdeck-bar-wrong" style="flex-grow: {{ day.wrong }}"></span>{% endif %}{% if day.nearly %}<span class="flashdeck-bar-nearly" style="flex-grow: {{ day.nearly }}"></span>{% endif %}{% if day.right %}<span class="flashdeck-bar-right" style="flex-grow: {{ day.right }}"></span>{% endif %}</span>{% endif %}
+        </li>
+        {% endfor %}
+      </ol>
+    </div>
+    <div class="flashdeck-plot-axis" aria-hidden="true"><span>{{ days.0.date|date:"j M" }}</span><span>Today</span></div>
+  </figure>
+  <details class="flashdeck-table-view">
+    <summary>The same, as a table</summary>
+    <div class="flashdeck-scroll">
+      <table>
+        <thead><tr><th scope="col">Day</th><th scope="col">Right</th><th scope="col">Nearly right</th><th scope="col">Wrong</th><th scope="col">Answered</th></tr></thead>
+        <tbody>
+          {% for day in days reversed %}<tr><th scope="row">{{ day.date|date:"D j M" }}</th><td>{{ day.right }}</td><td>{{ day.nearly }}</td><td>{{ day.wrong }}</td><td>{{ day.total }}</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+
+  <h2>Decks</h2>
+  {% if decks %}
+  <div class="flashdeck-scroll">
+    <table>
+      <thead><tr><th scope="col">Deck</th><th scope="col">Cards</th><th scope="col">Seen</th><th scope="col">Well learnt</th><th scope="col">Due</th><th scope="col">Right, last 30 days</th></tr></thead>
+      <tbody>
+        {% for row in decks %}<tr>
+          <th scope="row"><a href="{% url 'flashdeck:deck' row.deck.subject.slug row.deck.slug %}">{{ row.deck }}</a></th>
+          <td>{{ row.cards }}</td><td>{{ row.seen }}</td><td>{{ row.well_learnt }}</td><td>{{ row.due }}</td>
+          <td>{% if row.recent.total %}{{ row.recent.percent_right }}% of {{ row.recent.total }}{% else %}–{% endif %}</td>
+        </tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="flashdeck-muted">A card is well learnt once it comes back after 21 days or more.{% if has_settings %} <a href="{% url 'flashdeck:settings' %}">Hidden cards, and cards shown more or less often</a>.{% endif %}</p>
+  {% else %}
+  <p>There are no decks yet.</p>
+  {% endif %}
+
+  {% if missed_cards %}
+  <h2>Cards most often missed</h2>
+  <ol class="flashdeck-missed">
+    {% for card, missed in missed_cards %}<li><a href="{% url 'flashdeck:item_reference' card.deck.subject.slug card.key %}">{{ card }}</a> <span class="flashdeck-muted">missed {{ missed.missed }} time{{ missed.missed|pluralize }} out of {{ missed.total }}</span></li>{% endfor %}
+  </ol>
+  {% endif %}
+
+  {% if missed_answers %}
+  <h2>Answers most often missed</h2>
+  <ol class="flashdeck-missed">
+    {% for deck, label, missed in missed_answers %}<li>{{ deck.title }}: <strong>{{ label }}</strong> <span class="flashdeck-muted">missed {{ missed.percent }}% of {{ missed.total }} times</span></li>{% endfor %}
+  </ol>
+  {% endif %}
+</div>
+{% endblock %}
