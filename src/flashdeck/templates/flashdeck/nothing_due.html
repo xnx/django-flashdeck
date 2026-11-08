@@ -1,0 +1,21 @@
+{% extends "flashdeck/page.html" %}
+{% block flashdeck_title %}{% if deck %}{{ deck.title }}{% else %}{{ subject.title }}{% endif %} · Flashcards{% endblock %}
+{% block flashdeck_content %}
+{% include "flashdeck/_assets.html" %}
+<div class="flashdeck">
+  {% include "flashdeck/_crumbs.html" %}
+  <div class="flashdeck-card">
+    {% if not has_cards %}
+    <p>There are no cards here yet.</p>
+    {% else %}
+    <p class="flashdeck-verdict">Nothing is due.</p>
+    {% if next_due %}<p>The next card is due in {{ next_due|timeuntil }}.</p>{% endif %}
+    {% if new_left and quota_reached %}<p>You have started today’s new cards.</p>{% endif %}
+    <div class="flashdeck-actions">
+      {% if new_left %}<a class="flashdeck-primary" href="?more=1">Start a new card</a>{% endif %}
+      {% if next_due %}<a class="flashdeck-button" href="?ahead=1">Practise ahead</a>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

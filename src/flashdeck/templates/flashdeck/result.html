@@ -1,0 +1,34 @@
+{% extends "flashdeck/page.html" %}
+{% block flashdeck_title %}{% if deck %}{{ deck.title }}{% else %}{{ subject.title }}{% endif %} · Flashcards{% endblock %}
+{% block flashdeck_content %}
+{% include "flashdeck/_assets.html" %}
+<div class="flashdeck">
+  {% include "flashdeck/_crumbs.html" %}
+  <div class="flashdeck-card">
+    {% include "flashdeck/_prompt.html" %}
+    <p class="flashdeck-verdict flashdeck-{{ verdict }}" role="status">{{ verdict.label }}</p>
+    <form method="post" action="{{ scope_url }}">
+      {% csrf_token %}
+      {% if review %}<input type="hidden" name="review" value="{{ review.pk }}">{% endif %}
+      <ul class="flashdeck-results">
+        {% for row in rows %}
+        <li class="flashdeck-result flashdeck-{{ row.verdict }}">
+          {% if has_labels %}<span class="flashdeck-label"{% if subject.language %} lang="{{ subject.language }}"{% endif %}>{{ row.label }}</span>{% endif %}
+          {% if row.given %}<span class="flashdeck-given"{% if subject.language %} lang="{{ subject.language }}"{% endif %}>{{ row.given }}</span>{% else %}<span class="flashdeck-given flashdeck-muted">no answer</span>{% endif %}
+          <span class="flashdeck-mark">{% if row.verdict == "wrong" %}✗{% elif row.verdict == "nearly" %}≈{% else %}✓{% endif %}<span class="flashdeck-hidden"> {{ row.verdict_label }}</span></span>
+          {% if row.verdict == "wrong" or row.verdict == "nearly" %}<span class="flashdeck-expected"{% if subject.language %} lang="{{ subject.language }}"{% endif %}>{{ row.expected }}</span>{% endif %}
+          {% if row.can_claim %}<button type="submit" name="claim" value="{{ row.answer }}" class="flashdeck-claim">I was right</button>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </form>
+    {% if card.notes %}<div class="flashdeck-notes">{{ card.notes|linebreaks }}</div>{% endif %}
+    {% if card.image and card.image_credit %}<p class="flashdeck-credit">Image: {{ card.image_credit }}{% if card.image_licence %} ({{ card.image_licence }}){% endif %}</p>{% endif %}
+    <form method="get" action="{{ scope_url }}" class="flashdeck-actions">
+      <input type="hidden" name="after" value="{{ card.pk }}">
+      <button type="submit" class="flashdeck-primary" autofocus>Next card</button>
+      {% if due %}<span class="flashdeck-muted">This card comes back in {{ due|timeuntil }}.</span>{% endif %}
+    </form>
+  </div>
+</div>
+{% endblock %}

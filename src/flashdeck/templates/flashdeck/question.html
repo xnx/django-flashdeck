@@ -1,0 +1,28 @@
+{% extends "flashdeck/page.html" %}
+{% block flashdeck_title %}{% if deck %}{{ deck.title }}{% else %}{{ subject.title }}{% endif %} · Flashcards{% endblock %}
+{% block flashdeck_content %}
+{% include "flashdeck/_assets.html" %}
+<div class="flashdeck">
+  {% include "flashdeck/_crumbs.html" %}
+  <form method="post" action="{{ scope_url }}" class="flashdeck-card" data-flashdeck-form>
+    {% csrf_token %}
+    <input type="hidden" name="card" value="{{ card.pk }}">
+    {% include "flashdeck/_prompt.html" %}
+    {% for answer in answers %}
+    <div class="flashdeck-row">
+      {% if answer.label %}<label for="flashdeck-answer-{{ answer.pk }}"{% if subject.language %} lang="{{ subject.language }}"{% endif %}>{{ answer.label }}</label>{% endif %}
+      <input id="flashdeck-answer-{{ answer.pk }}" name="answer-{{ answer.pk }}" type="text"{% if not answer.label %} aria-label="Answer"{% endif %}{% if subject.language %} lang="{{ subject.language }}"{% endif %} autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"{% if forloop.first %} autofocus{% endif %}>
+    </div>
+    {% endfor %}
+    {% if characters %}
+    <div class="flashdeck-characters" role="group" aria-label="Characters to type">
+      {% for character in characters %}<button type="button" tabindex="-1" data-flashdeck-insert="{{ character }}">{{ character }}</button>{% endfor %}
+    </div>
+    {% endif %}
+    <div class="flashdeck-actions">
+      <button type="submit" class="flashdeck-primary">Mark</button>
+      <a class="flashdeck-button" href="{{ scope_url }}?after={{ card.pk }}">Skip</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "flashdeck/page.html" %}
+{% block flashdeck_title %}Flashcards{% endblock %}
+{% block flashdeck_content %}
+{% include "flashdeck/_assets.html" %}
+<div class="flashdeck">
+  <nav class="flashdeck-crumbs" aria-label="Breadcrumb">{% include "flashdeck/_crumbs_root.html" %}<span>Flashcards</span></nav>
+  <h1>Flashcards</h1>
+  {% for subject in subjects %}
+  <section>
+    <h2><a href="{% url 'flashdeck:subject' subject.slug %}">{{ subject.title }}</a>{% if subject.due %} <span class="flashdeck-due">{{ subject.due }} due</span>{% endif %}</h2>
+    {% if subject.description %}<p>{{ subject.description }}</p>{% endif %}
+    <ul class="flashdeck-decks">
+      {% for deck in subject.deck_list %}
+      <li>
+        <a href="{% url 'flashdeck:deck' subject.slug deck.slug %}">{{ deck.title }}</a>
+        <span class="flashdeck-muted">{{ deck.card_count }} card{{ deck.card_count|pluralize }}{% if deck.due %}, {{ deck.due }} due{% endif %}{% if not deck.is_public %}, private{% endif %}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% empty %}
+  <p>There are no decks yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}

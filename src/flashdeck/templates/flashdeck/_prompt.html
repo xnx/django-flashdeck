@@ -1,0 +1,5 @@
+<div class="flashdeck-prompt">
+  {% if card.image %}<img src="{{ card.image.url }}" alt="{{ card.image_alt }}">{% endif %}
+  {% if card.prompt %}<p class="flashdeck-prompt-text">{{ card.prompt|linebreaksbr }}</p>{% endif %}
+  {% if show_deck %}<p class="flashdeck-muted">{{ card.deck.title }}</p>{% endif %}
+</div>

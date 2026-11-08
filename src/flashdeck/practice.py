@@ -1,0 +1,174 @@
+"""Choosing the next card, marking and recording answers, and claims."""
+
+from collections import defaultdict
+from datetime import datetime, time
+
+from django.db import transaction
+from django.utils import timezone
+
+from .conf import setting
+from .marking import Verdict, combine, mark
+from .models import Answer, CardState, ClaimedAnswer, Deck, Review
+from .scheduling import due_of, schedule
+
+NEW_CARD_ORDER = [
+    "deck__subject__position",
+    "deck__position",
+    "deck_id",
+    "position",
+    "id",
+]
+
+
+def visible_decks(user):
+    """The decks that a user may practise."""
+    decks = Deck.objects.select_related("subject")
+    if not user.has_perm("flashdeck.practise_private"):
+        decks = decks.filter(is_public=True)
+    return decks
+
+
+def new_cards_left(user):
+    """How many more new cards the user may start today."""
+    midnight = timezone.make_aware(datetime.combine(timezone.localdate(), time.min))
+    started = CardState.objects.filter(user=user, created__gte=midnight).count()
+    return setting("NEW_CARDS_PER_DAY") - started
+
+
+def next_card(user, cards, *, after=None, ahead=False, more=False):
+    """The card to show next from `cards`, or None if nothing is due.
+
+    A visitor who is not logged in gets a random card. A user gets the card most
+    overdue; failing that, a new card (up to NEW_CARDS_PER_DAY, or beyond it with
+    `more`); failing that, with `ahead`, the card due soonest. The card just shown
+    (`after`) is not shown again straight away unless it is the only choice.
+    """
+    if not user.is_authenticated:
+        pool = cards.exclude(pk=after) if after else cards
+        return pool.order_by("?").first() or cards.first()
+    states = CardState.objects.filter(user=user, card__in=cards).select_related(
+        "card__deck__subject"
+    )
+    due = states.filter(due__lte=timezone.now()).order_by("due")
+    state = _first(due, card_id=after)
+    if state:
+        return state.card
+    if more or new_cards_left(user) > 0:
+        new = cards.exclude(states__user=user).order_by(*NEW_CARD_ORDER)
+        card = _first(new.select_related("deck__subject"), pk=after)
+        if card:
+            return card
+    if ahead:
+        state = _first(states.order_by("due"), card_id=after)
+        if state:
+            return state.card
+    return None
+
+
+def _first(queryset, **exclude):
+    """The first in the queryset other than the excluded one, if there is one."""
+    if any(value is not None for value in exclude.values()):
+        found = queryset.exclude(**exclude).first()
+        if found:
+            return found
+    return queryset.first()
+
+
+def mark_card(card, answers, given, user):
+    """Marks the answers given (a dictionary from Answer id to text).
+
+    Returns the results, one for each answer, and the verdict on the card. A user's
+    claimed answers that have not been rejected are marked right for that user.
+    """
+    claimed = defaultdict(list)
+    if user.is_authenticated:
+        for answer_id, text in ClaimedAnswer.objects.filter(
+            user=user, answer__in=answers, status=ClaimedAnswer.Status.PENDING
+        ).values_list("answer_id", "text"):
+            claimed[answer_id].append(text)
+    case_sensitive = card.deck.subject.case_sensitive
+    results = []
+    for answer in answers:
+        text = given.get(answer.pk, "").strip()
+        result = mark(
+            text, answer.accepted() + claimed[answer.pk], case_sensitive=case_sensitive
+        )
+        results.append(
+            {
+                "answer": answer.pk,
+                "given": text,
+                "verdict": result.verdict.value,
+                "expected": result.expected,
+            }
+        )
+    return results, combine(r["verdict"] for r in results)
+
+
+@transaction.atomic
+def record_review(user, card, results, verdict):
+    """Saves a marked answer and reschedules the card."""
+    now = timezone.now()
+    state = CardState.objects.select_for_update().filter(user=user, card=card).first()
+    before = state.fsrs if state else None
+    after = schedule(before, verdict, now, card.pk)
+    if state is None:
+        state = CardState(user=user, card=card)
+    state.fsrs = after
+    state.due = due_of(after)
+    state.save()
+    return Review.objects.create(
+        user=user,
+        card=card,
+        created=now,
+        verdict=verdict,
+        results=results,
+        state_before=before,
+    )
+
+
+class ClaimError(Exception):
+    pass
+
+
+@transaction.atomic
+def claim(review, answer_id):
+    """Records the user's claim that their answer was right after all.
+
+    The answer is saved as a ClaimedAnswer, the review is marked again, and, if it
+    is the user's latest review of the card, the card is rescheduled as if the
+    review had been marked that way to begin with.
+    """
+    review = Review.objects.select_for_update().get(pk=review.pk)
+    entry = next((r for r in review.results if r["answer"] == answer_id), None)
+    if (
+        entry is None
+        or entry["verdict"] not in (Verdict.NEARLY, Verdict.WRONG)
+        or not entry["given"]
+    ):
+        raise ClaimError("Only an answer marked wrong or nearly right can be claimed.")
+    try:
+        answer = Answer.objects.get(pk=answer_id, card_id=review.card_id)
+    except Answer.DoesNotExist as error:
+        raise ClaimError("The answer no longer exists.") from error
+    claimed, created = ClaimedAnswer.objects.get_or_create(
+        answer=answer, user=review.user, text=entry["given"]
+    )
+    if not created and claimed.status == ClaimedAnswer.Status.REJECTED:
+        claimed.status = ClaimedAnswer.Status.PENDING
+        claimed.save(update_fields=["status"])
+    entry["verdict"] = Verdict.CLAIMED.value
+    review.verdict = combine(r["verdict"] for r in review.results)
+    review.save(update_fields=["results", "verdict"])
+    latest = (
+        Review.objects.filter(user=review.user, card_id=review.card_id)
+        .values_list("pk", flat=True)
+        .first()
+    )
+    if latest == review.pk:
+        after = schedule(
+            review.state_before, review.verdict, review.created, review.card_id
+        )
+        CardState.objects.filter(user=review.user, card_id=review.card_id).update(
+            fsrs=after, due=due_of(after)
+        )
+    return claimed

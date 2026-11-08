@@ -1,0 +1,23 @@
+{% comment %}
+The page that every flashdeck page extends. This default is a page of its own; a
+site overrides this template to put the app inside its own pages, filling its
+blocks with these two:
+
+  {% extends "base.html" %}
+  {% block title %}{% block flashdeck_title %}{% endblock %}{% endblock %}
+  {% block content %}{% block flashdeck_content %}{% endblock %}{% endblock %}
+{% endcomment %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block flashdeck_title %}Flashcards{% endblock %}</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { max-width: 42rem; margin: 0 auto; padding: 1.5rem 1rem; font-family: system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+{% block flashdeck_content %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,116 @@
+/* django-flashdeck
+ *
+ * The colours are custom properties, which a site can set on .flashdeck to match
+ * its own palette: --flashdeck-ink, -muted, -line, -surface, -accent, -accent-on,
+ * -right, -nearly and -wrong. The defaults follow the page's text colour and its
+ * color-scheme (light or dark).
+ */
+
+.flashdeck {
+  --fd-ink: var(--flashdeck-ink, currentColor);
+  --fd-muted: var(--flashdeck-muted, color-mix(in srgb, currentColor 70%, transparent));
+  --fd-line: var(--flashdeck-line, color-mix(in srgb, currentColor 25%, transparent));
+  --fd-surface: var(--flashdeck-surface, color-mix(in srgb, currentColor 4%, transparent));
+  --fd-accent: var(--flashdeck-accent, light-dark(#1d4ed8, #93c5fd));
+  --fd-accent-on: var(--flashdeck-accent-on, light-dark(#ffffff, #0b1220));
+  --fd-right: var(--flashdeck-right, light-dark(#166534, #86efac));
+  --fd-nearly: var(--flashdeck-nearly, light-dark(#854d0e, #fde047));
+  --fd-wrong: var(--flashdeck-wrong, light-dark(#b91c1c, #fca5a5));
+  color: var(--fd-ink);
+  line-height: 1.5;
+}
+
+.flashdeck h1 { font-size: 1.75rem; font-weight: 700; line-height: 1.2; margin: 0 0 1rem; }
+.flashdeck h2 { font-size: 1.25rem; font-weight: 600; line-height: 1.3; margin: 1.5rem 0 0.5rem; }
+.flashdeck p { margin: 0.5rem 0; }
+.flashdeck a { color: var(--fd-accent); }
+
+.flashdeck-crumbs { font-size: 0.875rem; color: var(--fd-muted); margin-bottom: 1rem; }
+.flashdeck-crumbs a { color: inherit; }
+.flashdeck-muted { color: var(--fd-muted); font-size: 0.875rem; }
+
+.flashdeck-decks { list-style: none; padding: 0; margin: 0; }
+.flashdeck-decks li { padding: 0.375rem 0; border-top: 1px solid var(--fd-line); }
+.flashdeck-due {
+  display: inline-block; margin-left: 0.5rem; padding: 0 0.5rem; border-radius: 999px;
+  font-size: 0.8125rem; font-weight: 600; vertical-align: middle;
+  background: var(--fd-accent); color: var(--fd-accent-on);
+}
+
+.flashdeck-card {
+  padding: 1.25rem; border: 1px solid var(--fd-line); border-radius: 0.75rem;
+  background: var(--fd-surface);
+}
+.flashdeck-prompt { margin-bottom: 1rem; }
+.flashdeck-prompt img {
+  display: block; max-width: 100%; height: auto; max-height: 60vh;
+  margin: 0 auto 0.75rem; border-radius: 0.5rem;
+}
+.flashdeck .flashdeck-prompt-text { font-size: 1.375rem; font-weight: 600; line-height: 1.35; margin: 0; }
+
+/* Answer boxes, each with its label (such as a pronoun) to the left. */
+.flashdeck-row { display: flex; align-items: center; gap: 0.75rem; margin: 0.5rem 0; }
+.flashdeck-row label,
+.flashdeck-label { flex: 0 0 7.5rem; text-align: right; color: var(--fd-muted); }
+.flashdeck-row input {
+  flex: 1; min-width: 0; padding: 0.5rem 0.625rem;
+  font: inherit; font-size: max(1rem, 16px); /* 16px or more stops phones zooming in */
+  color: inherit; background: var(--flashdeck-input, transparent);
+  border: 1px solid var(--fd-line); border-radius: 0.375rem;
+}
+.flashdeck-row input:focus { outline: 2px solid var(--fd-accent); outline-offset: 1px; }
+
+.flashdeck-characters { display: flex; flex-wrap: wrap; gap: 0.375rem; margin: 0.75rem 0; }
+.flashdeck-characters button {
+  min-width: 2.5rem; min-height: 2.5rem; font: inherit; color: inherit; cursor: pointer;
+  background: transparent; border: 1px solid var(--fd-line); border-radius: 0.375rem;
+}
+
+.flashdeck-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-top: 1rem; }
+.flashdeck-primary,
+.flashdeck-button {
+  display: inline-block; padding: 0.5rem 1.25rem; border-radius: 0.375rem;
+  font: inherit; font-weight: 600; text-decoration: none; cursor: pointer;
+}
+.flashdeck .flashdeck-primary { background: var(--fd-accent); color: var(--fd-accent-on); border: 1px solid var(--fd-accent); }
+.flashdeck .flashdeck-button { background: transparent; color: var(--fd-accent); border: 1px solid var(--fd-line); }
+.flashdeck-primary:focus-visible,
+.flashdeck-button:focus-visible,
+.flashdeck-claim:focus-visible { outline: 2px solid var(--fd-accent); outline-offset: 2px; }
+
+/* Results. */
+.flashdeck-verdict { font-size: 1.25rem; font-weight: 700; margin: 0.5rem 0 0.75rem; }
+.flashdeck-verdict.flashdeck-right,
+.flashdeck-verdict.flashdeck-claimed { color: var(--fd-right); }
+.flashdeck-verdict.flashdeck-nearly { color: var(--fd-nearly); }
+.flashdeck-verdict.flashdeck-wrong { color: var(--fd-wrong); }
+.flashdeck-results { list-style: none; padding: 0; margin: 0; }
+.flashdeck-result {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.75rem;
+  padding: 0.375rem 0; border-top: 1px solid var(--fd-line);
+}
+.flashdeck-mark { font-weight: 700; }
+.flashdeck-right .flashdeck-mark,
+.flashdeck-claimed .flashdeck-mark { color: var(--fd-right); }
+.flashdeck-nearly .flashdeck-mark { color: var(--fd-nearly); }
+.flashdeck-wrong .flashdeck-mark { color: var(--fd-wrong); }
+.flashdeck-wrong .flashdeck-given { text-decoration: line-through; text-decoration-color: var(--fd-wrong); }
+.flashdeck-expected { font-weight: 600; color: var(--fd-right); }
+.flashdeck-claim {
+  margin-left: auto; padding: 0.125rem 0.625rem; font: inherit; font-size: 0.875rem;
+  color: var(--fd-accent); background: transparent; cursor: pointer;
+  border: 1px solid var(--fd-line); border-radius: 999px;
+}
+.flashdeck-notes { margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid var(--fd-line); }
+.flashdeck-credit { font-size: 0.8125rem; color: var(--fd-muted); }
+
+.flashdeck-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+
+@media (max-width: 30rem) {
+  .flashdeck-row label,
+  .flashdeck-label { flex-basis: 5.5rem; }
+  .flashdeck-card { padding: 1rem; }
+}
