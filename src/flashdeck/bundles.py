@@ -67,8 +67,9 @@ class _Source:
 def import_bundle(path, *, update=False):
     """Imports a bundle, adding the subject, decks and cards that are not on the
     site (matched by slug and by key). With `update`, existing ones are updated
-    too, except that answers accepted on the site are kept and images already on a
-    card are not replaced. Returns counts of what was done."""
+    too, except that answers accepted on the site are kept, images already on a
+    card are not replaced, and whether a deck is public is left as it is. Returns
+    counts of what was done."""
     source = _Source(path)
     try:
         try:
@@ -113,6 +114,9 @@ def _import(data, source, update):
         deck, created = Deck.objects.get_or_create(
             subject=subject, slug=slug, defaults=values
         )
+        # Whether a deck is public is for the site to decide, so an update leaves
+        # it as it is.
+        values.pop("is_public")
         _count(counts, "deck", created, update, deck, values)
         for card_position, card_data in enumerate(deck_data.get("cards") or []):
             _import_card(deck, card_data, card_position, source, update, counts)

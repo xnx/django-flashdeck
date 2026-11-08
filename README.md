@@ -115,7 +115,7 @@ python manage.py flashdeck_import decks/french --update
 python manage.py flashdeck_export french french.zip       # or a directory
 ```
 
-An import adds the subject, decks and cards that the site does not have, matching them by slug and key, and leaves existing ones alone. With `--update`, it also updates existing ones from the bundle. Alternatives accepted on the site are kept, and an image already on a card is not replaced. An export writes everything about a subject, including edits made in the admin, as a bundle that can be imported elsewhere.
+An import adds the subject, decks and cards that the site does not have, matching them by slug and key, and leaves existing ones alone. With `--update`, it also updates existing ones from the bundle. Alternatives accepted on the site are kept, an image already on a card is not replaced, and whether a deck is public is left as it is. An export writes everything about a subject, including edits made in the admin, as a bundle that can be imported elsewhere.
 
 A script that generates a bundle can write its `cards.yaml` with `flashdeck.manifest.dump_manifest(data)`, which needs no Django set-up and puts short lists on one line and text of more than one line in literal blocks.
 

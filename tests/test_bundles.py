@@ -6,7 +6,7 @@ from django.core.management import call_command
 from PIL import Image
 
 from flashdeck.bundles import BundleError, export_bundle, import_bundle
-from flashdeck.models import Card, Subject
+from flashdeck.models import Card, Deck, Subject
 
 BUNDLE = {
     "format": "flashdeck/1",
@@ -96,7 +96,9 @@ def test_importing_again_changes_nothing_unless_asked(db, tmp_path):
     data["decks"][1]["cards"][0]["prompt"] = "the dog"
     write_bundle(path, data, images=False)
     image = Card.objects.get(key="beagle").image.name
+    Deck.objects.filter(slug="conditionnel").update(is_public=True)
     counts = import_bundle(path, update=True)
+    assert Deck.objects.get(slug="conditionnel").is_public
     assert counts["cards updated"] == 3
     assert Card.objects.get(key="etre").answers.count() == 1
     dog = Card.objects.get(key="dog")
