@@ -1,0 +1,24 @@
+{% extends "wagtailadmin/generic/base.html" %}
+{% load wagtailadmin_tags %}
+{% block main_content %}
+<section class="w-mb-10">
+  <h2 class="w-h3">Import a bundle</h2>
+  <p>A bundle is a subject's decks and cards, with their images: a zip file holding <code>cards.yaml</code> and the image files it names. The format is described in the README of django-flashdeck.</p>
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% include "wagtailadmin/shared/non_field_errors.html" with form=import_form %}
+    {% formattedfield import_form.bundle %}
+    {% formattedfield import_form.update %}
+    <button type="submit" name="action" value="import" class="button">Import</button>
+  </form>
+</section>
+<section>
+  <h2 class="w-h3">Export a subject</h2>
+  <p>Everything about a subject, including the edits made here, as a bundle to keep, to change and import again, or to import on another site.</p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% formattedfield export_form.subject %}
+    <button type="submit" name="action" value="export" class="button">Download as a zip file</button>
+  </form>
+</section>
+{% endblock %}

@@ -53,7 +53,12 @@ def search_text(cards):
 
 
 def name(card):
-    """A card's name in a reference: the first line of its prompt, or its key."""
+    """A card's name in a reference. A card with an image (such as a circuit
+    symbol) is named by its answer, since its prompt is usually a question such as
+    "Name this symbol"; any other card by the first line of its prompt."""
+    answers = card.answers.all()  # prefetched
+    if card.image and answers:
+        return answers[0].text
     return card.prompt.split("\n")[0].strip() or card.key
 
 

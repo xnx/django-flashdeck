@@ -72,3 +72,13 @@ def test_visitors_see_only_the_public_decks(client, verbs, dog):
     response = client.get(url("deck_reference", "french", "present"))
     assert response.status_code == 404
     assert client.get(url("item_reference", "french", "etre")).status_code == 404
+
+
+def test_a_picture_card_is_named_by_its_answer(db, public_deck):
+    from django.core.files.base import ContentFile
+
+    from flashdeck.reference import cards_in, name
+
+    card = make_card(public_deck, "lamp", "Name this circuit symbol.", ["lamp"])
+    card.image.save("lamp.svg", ContentFile(b"<svg></svg>"))
+    assert name(cards_in([public_deck]).get(key="lamp")) == "lamp"

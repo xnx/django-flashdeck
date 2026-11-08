@@ -19,6 +19,9 @@ from .manifest import FORMAT, MANIFEST, dump_manifest
 from .marking import normalise
 from .models import RESERVED_SLUGS, Answer, Card, Deck, Subject
 
+# The largest file a bundle may hold, uncompressed.
+MAX_FILE_SIZE = 20 * 1024 * 1024
+
 
 class BundleError(Exception):
     pass
@@ -54,7 +57,10 @@ class _Source:
             raise BundleError(f"{name!r} is not a path within the bundle.")
         try:
             if self.zip:
-                return self.zip.read(str(self.prefix / path))
+                info = self.zip.getinfo(str(self.prefix / path))
+                if info.file_size > MAX_FILE_SIZE:
+                    raise BundleError(f"{name} is larger than 20 MB.")
+                return self.zip.read(info)
             return self.path.joinpath(*path.parts).read_bytes()
         except (KeyError, FileNotFoundError, IsADirectoryError) as error:
             raise BundleError(f"{name} is not in the bundle.") from error

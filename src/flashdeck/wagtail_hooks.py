@@ -7,6 +7,7 @@ from wagtail.snippets.models import register_snippet
 from wagtail.snippets.views.snippets import SnippetViewSet, SnippetViewSetGroup
 
 from .models import Card, ClaimedAnswer, Deck, Subject
+from .wagtail_views import BundlesViewSet
 
 
 class SubjectViewSet(SnippetViewSet):
@@ -96,7 +97,13 @@ class FlashcardsGroup(SnippetViewSetGroup):
     menu_label = "Flashcards"
     menu_icon = "tasks"
     menu_name = "flashdeck"
-    items = (SubjectViewSet, DeckViewSet, CardViewSet, ClaimedAnswerViewSet)
+    items = (
+        SubjectViewSet,
+        DeckViewSet,
+        CardViewSet,
+        ClaimedAnswerViewSet,
+        BundlesViewSet,
+    )
 
 
 register_snippet(FlashcardsGroup)

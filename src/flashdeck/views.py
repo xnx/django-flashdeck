@@ -1,10 +1,15 @@
+from urllib.parse import urlsplit
+
+from django.conf import settings
 from django.db.models import Count, Q
 from django.http import Http404
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, redirect, render, resolve_url
+from django.urls import NoReverseMatch, Resolver404, resolve
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 from . import reference, stats
+from .conf import setting
 from .marking import Verdict
 from .models import Card, CardState, Review, Subject
 from .practice import (
@@ -62,8 +67,24 @@ def index(request):
             "subjects": subjects.values(),
             "has_settings": has_settings,
             "user_logged_in": request.user.is_authenticated,
+            "user_name": request.user.is_authenticated
+            and (request.user.get_short_name() or request.user.get_username()),
+            "login_url": _url_if_routed(settings.LOGIN_URL),
+            "logout_url": _url_if_routed(setting("LOGOUT_URL")),
         },
     )
+
+
+def _url_if_routed(url):
+    """The URL (or URL name) as a path, if the site has a page there."""
+    if not url:
+        return None
+    try:
+        path = resolve_url(url)
+        resolve(urlsplit(path).path)
+    except (NoReverseMatch, Resolver404):
+        return None
+    return path
 
 
 def _changed_states(user):

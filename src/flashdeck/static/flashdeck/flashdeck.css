@@ -132,6 +132,7 @@
   margin-bottom: 0.75rem; padding: 0.5rem 0.75rem; font-size: 0.875rem;
   border: 1px solid var(--fd-line); border-radius: 0.5rem;
 }
+.flashdeck-account form { display: inline; }
 .flashdeck-setting { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .flashdeck-setting form { margin: 0; }
 

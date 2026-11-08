@@ -9,6 +9,9 @@ DEFAULTS = {
     "IMAGE_MAX_SIZE": 1200,
     # The directory, within the site's media storage, that holds card images.
     "UPLOAD_DIR": "flashdeck",
+    # The URL (or URL name) to log out at, by POST, for a link on the index; blank
+    # for none. Logging in uses Django's LOGIN_URL.
+    "LOGOUT_URL": "",
 }
 
 

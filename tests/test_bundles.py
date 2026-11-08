@@ -163,3 +163,17 @@ def test_reference_text_travels_with_a_bundle(db, tmp_path):
     export_bundle(Subject.objects.get(), tmp_path / "out")
     manifest = (tmp_path / "out" / "cards.yaml").read_text()
     assert "reference: |-\n    | je | -ais |" in manifest
+
+
+def test_a_file_too_large_in_a_zip_is_refused(db, tmp_path, monkeypatch):
+    import zipfile
+
+    from flashdeck import bundles
+
+    monkeypatch.setattr(bundles, "MAX_FILE_SIZE", 100)
+    path = tmp_path / "big.zip"
+    with zipfile.ZipFile(path, "w") as bundle:
+        bundle.writestr("cards.yaml", yaml.safe_dump(BUNDLE, allow_unicode=True))
+        bundle.writestr("images/beagle.png", png())  # more than 100 bytes
+    with pytest.raises(BundleError, match="larger than 20 MB"):
+        import_bundle(path)

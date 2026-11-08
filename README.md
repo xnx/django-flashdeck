@@ -25,6 +25,8 @@ urlpatterns = [
 
 Subjects, decks, cards and claimed answers (see "Marking") are edited in Django's admin and, on a Wagtail site, in Wagtail's admin under *Flashcards*. A deck is either public, for anyone to practise, or private, for users with the permission *Can practise private decks* (`flashdeck.practise_private`), which superusers have.
 
+Practising needs no account: a visitor who is not logged in is shown cards from the public decks at random, and nothing is stored. A logged-in user's answers are stored, for scheduling and scores. The index links to the site's login page (Django's `LOGIN_URL`) for visitors, if the site has one, and offers logged-in users a Log out button if `FLASHDECK_LOGOUT_URL` is set.
+
 ## Settings
 
 | Setting | Default | Meaning |
@@ -32,6 +34,7 @@ Subjects, decks, cards and claimed answers (see "Marking") are edited in Django'
 | `FLASHDECK_NEW_CARDS_PER_DAY` | `20` | New cards that each user starts per day, across all subjects |
 | `FLASHDECK_IMAGE_MAX_SIZE` | `1200` | The size, in pixels, of the square that uploaded images are reduced to fit |
 | `FLASHDECK_UPLOAD_DIR` | `"flashdeck"` | The directory, within the site's media storage, that holds card images |
+| `FLASHDECK_LOGOUT_URL` | `""` | The URL, or URL name, at which to log out (by POST), for a Log out button on the index; none if blank |
 
 ## Templates and styles
 
@@ -77,7 +80,8 @@ A right answer given after looking at the reference counts as nearly right, as i
 
 ## Reference
 
-Each subject, deck and *item* has a reference page, generated from the cards:
+Each subject, deck and *item* has a reference page, generated from the cards. A card is named in them by the first line of its prompt or, if it has an image (whose prompt is usually a question such as "Name this symbol"), by its answer.
+
 
 - a deck's page (`<subject>/<deck>/reference/`) shows the deck's cards as a table, with their answers and notes;
 - an item's page (`<subject>/reference/<key>/`) shows the cards that share a key across the subject's decks; for a subject whose decks are the tenses of verbs, keyed by verb, that is one verb in every tense;
@@ -145,6 +149,8 @@ python manage.py flashdeck_import decks/french            # or a .zip file
 python manage.py flashdeck_import decks/french --update
 python manage.py flashdeck_export french french.zip       # or a directory
 ```
+
+On a Wagtail site, *Flashcards → Import and export* in the admin uploads a bundle as a zip file (of up to 100 MB, with no file in it over 20 MB) and downloads any subject as one, for editors with the permissions to add and change cards.
 
 An import adds the subject, decks and cards that the site does not have, matching them by slug and key, and leaves existing ones alone. With `--update`, it also updates existing ones from the bundle. Alternatives accepted on the site are kept, an image already on a card is not replaced, and whether a deck is public is left as it is. An export writes everything about a subject, including edits made in the admin, as a bundle that can be imported elsewhere.
 
