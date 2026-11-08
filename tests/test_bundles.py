@@ -134,6 +134,7 @@ def test_an_exported_bundle_can_be_imported_again(db, tmp_path):
         (lambda d: d["decks"][1]["cards"][1].update(image="images/x.png"), "not in"),
         (lambda d: d["decks"][0]["cards"][0].pop("answers"), "at least one answer"),
         (lambda d: d["decks"][0]["cards"][0].update(key="être"), "must be letters"),
+        (lambda d: d["decks"][0].update(slug="settings"), "one of the app's pages"),
     ],
 )
 def test_mistakes_in_a_bundle_are_reported(db, tmp_path, change, message):

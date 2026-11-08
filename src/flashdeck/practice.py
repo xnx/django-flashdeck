@@ -1,4 +1,5 @@
-"""Choosing the next card, marking and recording answers, and claims."""
+"""Choosing the next card, marking and recording answers, claims, and each user's
+choices of which cards to hide and how often the others come back."""
 
 from collections import defaultdict
 from datetime import datetime, time
@@ -9,7 +10,7 @@ from django.utils import timezone
 from .conf import setting
 from .marking import Verdict, combine, mark
 from .models import Answer, CardState, ClaimedAnswer, Deck, Review
-from .scheduling import due_of, schedule
+from .scheduling import Frequency, due_of, schedule
 
 NEW_CARD_ORDER = [
     "deck__subject__position",
@@ -31,7 +32,13 @@ def visible_decks(user):
 def new_cards_left(user):
     """How many more new cards the user may start today."""
     midnight = timezone.make_aware(datetime.combine(timezone.localdate(), time.min))
-    started = CardState.objects.filter(user=user, created__gte=midnight).count()
+    # A card hidden before it was ever answered has no FSRS state, and was not
+    # started.
+    started = (
+        CardState.objects.filter(user=user, created__gte=midnight)
+        .exclude(fsrs=None)
+        .count()
+    )
     return setting("NEW_CARDS_PER_DAY") - started
 
 
@@ -40,15 +47,16 @@ def next_card(user, cards, *, after=None, ahead=False, more=False):
 
     A visitor who is not logged in gets a random card. A user gets the card most
     overdue; failing that, a new card (up to NEW_CARDS_PER_DAY, or beyond it with
-    `more`); failing that, with `ahead`, the card due soonest. The card just shown
-    (`after`) is not shown again straight away unless it is the only choice.
+    `more`); failing that, with `ahead`, the card due soonest. Cards the user has
+    hidden are never shown. The card just shown (`after`) is not shown again
+    straight away unless it is the only choice.
     """
     if not user.is_authenticated:
         pool = cards.exclude(pk=after) if after else cards
         return pool.order_by("?").first() or cards.first()
-    states = CardState.objects.filter(user=user, card__in=cards).select_related(
-        "card__deck__subject"
-    )
+    states = CardState.objects.filter(
+        user=user, card__in=cards, suspended=False
+    ).select_related("card__deck__subject")
     due = states.filter(due__lte=timezone.now()).order_by("due")
     state = _first(due, card_id=after)
     if state:
@@ -59,7 +67,7 @@ def next_card(user, cards, *, after=None, ahead=False, more=False):
         if card:
             return card
     if ahead:
-        state = _first(states.order_by("due"), card_id=after)
+        state = _first(states.exclude(due=None).order_by("due"), card_id=after)
         if state:
             return state.card
     return None
@@ -109,10 +117,10 @@ def record_review(user, card, results, verdict):
     """Saves a marked answer and reschedules the card."""
     now = timezone.now()
     state = CardState.objects.select_for_update().filter(user=user, card=card).first()
-    before = state.fsrs if state else None
-    after = schedule(before, verdict, now, card.pk)
     if state is None:
         state = CardState(user=user, card=card)
+    before = state.fsrs
+    after = schedule(before, verdict, now, card.pk, state.frequency)
     state.fsrs = after
     state.due = due_of(after)
     state.save()
@@ -165,10 +173,58 @@ def claim(review, answer_id):
         .first()
     )
     if latest == review.pk:
-        after = schedule(
-            review.state_before, review.verdict, review.created, review.card_id
+        state = CardState.objects.select_for_update().get(
+            user=review.user, card_id=review.card_id
         )
-        CardState.objects.filter(user=review.user, card_id=review.card_id).update(
-            fsrs=after, due=due_of(after)
-        )
+        _reschedule(state)
+        state.save(update_fields=["fsrs", "due"])
     return claimed
+
+
+def _reschedule(state):
+    """Schedules the card again from the user's latest review of it, as if that
+    review had been marked as it is now, with the card's present frequency.
+    Returns whether there was a review to do it from."""
+    review = Review.objects.filter(user_id=state.user_id, card_id=state.card_id).first()
+    if review is None:
+        return False
+    state.fsrs = schedule(
+        review.state_before,
+        review.verdict,
+        review.created,
+        state.card_id,
+        state.frequency,
+    )
+    state.due = due_of(state.fsrs)
+    return True
+
+
+@transaction.atomic
+def set_hidden(user, card, hidden):
+    """Hides a card from a user (it is never shown in practice), or shows it again."""
+    state = CardState.objects.select_for_update().filter(user=user, card=card).first()
+    if hidden:
+        if state is None:
+            CardState.objects.create(user=user, card=card, suspended=True)
+        elif not state.suspended:
+            state.suspended = True
+            state.save(update_fields=["suspended"])
+    elif state is not None and state.suspended:
+        if state.fsrs is None:
+            state.delete()  # never answered, so it is a new card again
+        else:
+            state.suspended = False
+            state.save(update_fields=["suspended"])
+
+
+@transaction.atomic
+def set_frequency(user, card, frequency):
+    """Sets how often a card that the user has answered comes back, and schedules
+    it again at once."""
+    frequency = Frequency(frequency)
+    state = CardState.objects.select_for_update().filter(user=user, card=card).first()
+    if state is None or state.fsrs is None:
+        return
+    state.frequency = frequency
+    _reschedule(state)
+    state.save(update_fields=["frequency", "fsrs", "due"])

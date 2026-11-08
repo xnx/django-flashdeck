@@ -2,6 +2,7 @@ import secrets
 from pathlib import PurePosixPath
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
 from django.db import models, transaction
 from django.db.models.signals import post_delete
@@ -13,12 +14,21 @@ from modelcluster.models import ClusterableModel
 from .conf import setting
 from .images import IMAGE_EXTENSIONS, prepare_image, validate_image
 from .marking import Verdict, normalise
+from .scheduling import Frequency
+
+# Paths of the app's own pages, which a subject or deck must not take as its slug.
+RESERVED_SLUGS = {"settings", "progress", "reference"}
+
+
+def validate_not_reserved(value):
+    if value in RESERVED_SLUGS:
+        raise ValidationError(f"“{value}” is the name of one of the app's own pages.")
 
 
 class Subject(models.Model):
     """Something to learn, such as French or dog breeds, made up of decks."""
 
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(unique=True, validators=[validate_not_reserved])
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     language = models.CharField(
@@ -57,7 +67,9 @@ class Deck(models.Model):
     """A set of cards on one topic within a subject."""
 
     subject = models.ForeignKey(Subject, related_name="decks", on_delete=models.CASCADE)
-    slug = models.SlugField(help_text="Unique within the subject.")
+    slug = models.SlugField(
+        help_text="Unique within the subject.", validators=[validate_not_reserved]
+    )
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     is_public = models.BooleanField(
@@ -202,7 +214,12 @@ class Answer(models.Model):
 
 
 class CardState(models.Model):
-    """One user's progress with one card: its spaced-repetition (FSRS) state."""
+    """One user's progress with one card: its spaced-repetition (FSRS) state, and
+    the user's choices of how often it comes back and whether it is hidden.
+
+    A card hidden before it was ever answered has a state with no FSRS state and
+    no due date; showing it again deletes the state, so that it is new again.
+    """
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -210,8 +227,14 @@ class CardState(models.Model):
         on_delete=models.CASCADE,
     )
     card = models.ForeignKey(Card, related_name="states", on_delete=models.CASCADE)
-    due = models.DateTimeField(db_index=True)
-    fsrs = models.JSONField()
+    due = models.DateTimeField(null=True, blank=True, db_index=True)
+    fsrs = models.JSONField(null=True, blank=True)
+    suspended = models.BooleanField(
+        "hidden", default=False, help_text="Never shown in practice."
+    )
+    frequency = models.CharField(
+        max_length=10, choices=Frequency.choices, default=Frequency.NORMAL
+    )
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:

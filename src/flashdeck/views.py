@@ -1,4 +1,4 @@
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -13,8 +13,11 @@ from .practice import (
     new_cards_left,
     next_card,
     record_review,
+    set_frequency,
+    set_hidden,
     visible_decks,
 )
+from .scheduling import Frequency
 
 MAX_ANSWER_LENGTH = 500
 
@@ -30,16 +33,19 @@ def index(request):
     """The subjects and decks the user may practise, with the number of cards due."""
     decks = list(visible_decks(request.user).annotate(card_count=Count("cards")))
     due = {}
+    has_settings = False
     if request.user.is_authenticated:
         due = dict(
             CardState.objects.filter(
                 user=request.user,
                 due__lte=timezone.now(),
+                suspended=False,
                 card__deck__in=[deck.pk for deck in decks],
             )
             .values_list("card__deck")
             .annotate(n=Count("pk"))
         )
+        has_settings = _changed_states(request.user).exists()
     subjects = {}
     for deck in decks:
         deck.due = due.get(deck.pk, 0)
@@ -48,7 +54,55 @@ def index(request):
             subject.deck_list, subject.due = [], 0
         subject.deck_list.append(deck)
         subject.due += deck.due
-    return render(request, "flashdeck/index.html", {"subjects": subjects.values()})
+    return render(
+        request,
+        "flashdeck/index.html",
+        {"subjects": subjects.values(), "has_settings": has_settings},
+    )
+
+
+def _changed_states(user):
+    """The user's cards that are hidden or come back more or less often."""
+    return CardState.objects.filter(user=user).filter(
+        Q(suspended=True) | ~Q(frequency=Frequency.NORMAL)
+    )
+
+
+@require_http_methods(["GET", "POST"])
+def card_settings(request):
+    """The cards that the user has hidden, or asked to see more or less often, with
+    buttons to undo each choice."""
+    if not request.user.is_authenticated:
+        raise Http404("Log in to see your card settings")
+    if request.method == "POST":
+        card = get_object_or_404(
+            Card.objects.filter(deck__in=visible_decks(request.user)),
+            pk=_int(request.POST.get("card")),
+        )
+        if request.POST.get("hidden") == "0":
+            set_hidden(request.user, card, False)
+        if request.POST.get("frequency") == Frequency.NORMAL:
+            set_frequency(request.user, card, Frequency.NORMAL)
+        return redirect(request.path)
+    states = list(
+        _changed_states(request.user)
+        .filter(card__deck__in=visible_decks(request.user))
+        .select_related("card__deck__subject")
+        .order_by(
+            "card__deck__subject__position",
+            "card__deck__position",
+            "card__position",
+            "card_id",
+        )
+    )
+    return render(
+        request,
+        "flashdeck/settings.html",
+        {
+            "hidden": [s for s in states if s.suspended],
+            "changed": [s for s in states if not s.suspended],
+        },
+    )
 
 
 @require_http_methods(["GET", "POST"])
@@ -69,10 +123,13 @@ def practise(request, subject, deck=None):
         "scope_url": request.path,
         "characters": subject.character_list(),
         "show_deck": deck is None,
+        "logged_in": request.user.is_authenticated,
     }
     if request.method == "POST":
         if "claim" in request.POST:
             return _claim(request, cards)
+        if "hidden" in request.POST or "frequency" in request.POST:
+            return _card_option(request, cards)
         return _answer(request, cards, context)
 
     review_id = _int(request.GET.get("review"))
@@ -98,6 +155,13 @@ def practise(request, subject, deck=None):
     if card is None:
         return _nothing_due(request, context, cards)
     context.update(card=card, answers=card.answers.all())
+    if request.user.is_authenticated:
+        # The card just hidden from the question page, to offer an Undo.
+        context["hidden_card"] = cards.filter(
+            pk=_int(request.GET.get("hidden")),
+            states__user=request.user,
+            states__suspended=True,
+        ).first()
     return render(request, "flashdeck/question.html", context)
 
 
@@ -133,6 +197,35 @@ def _claim(request, cards):
     return redirect(f"{request.path}?review={review.pk}")
 
 
+def _card_option(request, cards):
+    """Hides a card, shows it again, or changes how often it comes back: from the
+    result page (with the review) or from the question page (with the card)."""
+    if not request.user.is_authenticated:
+        raise Http404("Log in to change how a card is shown")
+    review = None
+    if "review" in request.POST:
+        review = get_object_or_404(
+            Review.objects.select_related("card"),
+            pk=_int(request.POST.get("review")),
+            user=request.user,
+            card__in=cards,
+        )
+        card = review.card
+    else:
+        card = get_object_or_404(cards, pk=_int(request.POST.get("card")))
+    if "frequency" in request.POST:
+        if request.POST["frequency"] not in Frequency.values:
+            raise Http404("No such frequency")
+        set_frequency(request.user, card, request.POST["frequency"])
+    if "hidden" in request.POST:
+        hidden = request.POST["hidden"] == "1"
+        set_hidden(request.user, card, hidden)
+    if review is not None:
+        return redirect(f"{request.path}?review={review.pk}")
+    hidden_query = f"&hidden={card.pk}" if request.POST.get("hidden") == "1" else ""
+    return redirect(f"{request.path}?after={card.pk}{hidden_query}")
+
+
 def _result(request, context, card, results, verdict, review):
     answers = {a.pk: a for a in card.answers.all()}
     rows = []
@@ -149,19 +242,16 @@ def _result(request, context, card, results, verdict, review):
                 and result["verdict"] in (Verdict.NEARLY, Verdict.WRONG),
             }
         )
-    due = None
+    state = None
     if review is not None:
-        due = (
-            CardState.objects.filter(user=review.user, card=card)
-            .values_list("due", flat=True)
-            .first()
-        )
+        state = CardState.objects.filter(user=review.user, card=card).first()
     context.update(
         card=card,
         rows=rows,
         verdict=Verdict(verdict),
         review=review,
-        due=due,
+        state=state,
+        frequencies=Frequency.choices,
         has_labels=any(row["label"] for row in rows),
     )
     return render(request, "flashdeck/result.html", context)
@@ -171,7 +261,9 @@ def _nothing_due(request, context, cards):
     context["has_cards"] = cards.exists()
     if not request.user.is_authenticated:
         return render(request, "flashdeck/nothing_due.html", context)
-    states = CardState.objects.filter(user=request.user, card__in=cards)
+    states = CardState.objects.filter(
+        user=request.user, card__in=cards, suspended=False
+    ).exclude(due=None)
     context.update(
         next_due=states.order_by("due").values_list("due", flat=True).first(),
         new_left=cards.exclude(states__user=request.user).exists(),

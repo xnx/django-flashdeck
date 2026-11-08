@@ -17,7 +17,7 @@ from django.db import transaction
 
 from .manifest import FORMAT, MANIFEST, dump_manifest
 from .marking import normalise
-from .models import Answer, Card, Deck, Subject
+from .models import RESERVED_SLUGS, Answer, Card, Deck, Subject
 
 
 class BundleError(Exception):
@@ -87,7 +87,7 @@ def import_bundle(path, *, update=False):
 def _import(data, source, update):
     counts = Counter()
     fields = _mapping(data.get("subject"), "subject")
-    slug = _slug(fields.get("slug"), "subject")
+    slug = _slug(fields.get("slug"), "subject", page_name=True)
     characters = fields.get("characters") or ""
     if isinstance(characters, list):
         characters = " ".join(_text(c, "subject characters") for c in characters)
@@ -103,7 +103,7 @@ def _import(data, source, update):
 
     for position, deck_data in enumerate(data.get("decks") or []):
         deck_data = _mapping(deck_data, f"deck {position + 1}")
-        slug = _slug(deck_data.get("slug"), f"deck {position + 1}")
+        slug = _slug(deck_data.get("slug"), f"deck {position + 1}", page_name=True)
         where = f"deck {slug}"
         values = {
             "title": _text(deck_data.get("title"), f"{where}: title", required=True),
@@ -227,7 +227,9 @@ def _mapping(value, where):
     return value
 
 
-def _slug(value, where):
+def _slug(value, where, *, page_name=False):
+    """A slug or key; a subject's or deck's slug (`page_name`), which is part of
+    its page's address, must not be the name of one of the app's own pages."""
     value = _text(value, f"{where}: slug or key", required=True)
     try:
         validate_slug(value)
@@ -235,6 +237,8 @@ def _slug(value, where):
         raise BundleError(
             f"{where}: {value!r} must be letters, numbers, hyphens and underscores."
         ) from error
+    if page_name and value in RESERVED_SLUGS:
+        raise BundleError(f"{where}: {value!r} is the name of one of the app's pages.")
     return value
 
 

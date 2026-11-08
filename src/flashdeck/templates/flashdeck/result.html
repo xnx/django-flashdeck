@@ -27,8 +27,26 @@
     <form method="get" action="{{ scope_url }}" class="flashdeck-actions">
       <input type="hidden" name="after" value="{{ card.pk }}">
       <button type="submit" class="flashdeck-primary" autofocus>Next card</button>
-      {% if due %}<span class="flashdeck-muted">This card comes back in {{ due|timeuntil }}.</span>{% endif %}
+      {% if state.due and not state.suspended %}<span class="flashdeck-muted">This card comes back in {{ state.due|timeuntil }}.</span>{% endif %}
     </form>
+    {% if review and state %}
+    <details class="flashdeck-options"{% if state.suspended or state.frequency != "normal" %} open{% endif %}>
+      <summary>Card options</summary>
+      <form method="post" action="{{ scope_url }}">
+        {% csrf_token %}
+        <input type="hidden" name="review" value="{{ review.pk }}">
+        {% if state.suspended %}
+        <p>This card will not be shown again. <button type="submit" name="hidden" value="0" class="flashdeck-choice">Undo</button></p>
+        {% else %}
+        <div class="flashdeck-choices" role="group" aria-labelledby="flashdeck-frequency">
+          <span id="flashdeck-frequency" class="flashdeck-muted">Show this card</span>
+          {% for value, label in frequencies %}<button type="submit" name="frequency" value="{{ value }}" class="flashdeck-choice" aria-pressed="{% if state.frequency == value %}true{% else %}false{% endif %}">{{ label }}</button>{% endfor %}
+        </div>
+        <p><button type="submit" name="hidden" value="1" class="flashdeck-choice">Never show this card again</button></p>
+        {% endif %}
+      </form>
+    </details>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

@@ -1,0 +1,43 @@
+{% extends "flashdeck/page.html" %}
+{% block flashdeck_title %}Card settings · Flashcards{% endblock %}
+{% block flashdeck_content %}
+{% include "flashdeck/_assets.html" %}
+<div class="flashdeck">
+  <nav class="flashdeck-crumbs" aria-label="Breadcrumb">{% include "flashdeck/_crumbs_root.html" %}<a href="{% url 'flashdeck:index' %}">Flashcards</a> / <span>Card settings</span></nav>
+  <h1>Card settings</h1>
+  <h2>Hidden cards</h2>
+  {% if hidden %}
+  <ul class="flashdeck-decks">
+    {% for state in hidden %}
+    <li class="flashdeck-setting">
+      <span>{{ state.card }} <span class="flashdeck-muted">{{ state.card.deck }}</span></span>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="card" value="{{ state.card_id }}">
+        <button type="submit" name="hidden" value="0" class="flashdeck-choice">Show again</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="flashdeck-muted">No cards are hidden.</p>
+  {% endif %}
+  <h2>Shown more or less often</h2>
+  {% if changed %}
+  <ul class="flashdeck-decks">
+    {% for state in changed %}
+    <li class="flashdeck-setting">
+      <span>{{ state.card }} <span class="flashdeck-muted">{{ state.card.deck }}: {{ state.get_frequency_display|lower }}</span></span>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="card" value="{{ state.card_id }}">
+        <button type="submit" name="frequency" value="normal" class="flashdeck-choice">Show normally</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="flashdeck-muted">Every card comes back as often as normal.</p>
+  {% endif %}
+</div>
+{% endblock %}

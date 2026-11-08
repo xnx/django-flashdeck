@@ -21,5 +21,6 @@
   {% empty %}
   <p>There are no decks yet.</p>
   {% endfor %}
+  {% if has_settings %}<p class="flashdeck-minor"><a href="{% url 'flashdeck:settings' %}">Hidden cards, and cards shown more or less often</a></p>{% endif %}
 </div>
 {% endblock %}

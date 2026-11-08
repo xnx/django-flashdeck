@@ -59,6 +59,11 @@ Scheduling uses FSRS, the [Free Spaced Repetition Scheduler](https://github.com/
 
 A logged-in user is shown the card most overdue, otherwise a new card (up to `FLASHDECK_NEW_CARDS_PER_DAY`), and otherwise a page saying when the next card is due, with links to start another new card or to practise ahead. A visitor who is not logged in is shown cards from the public decks at random, and nothing is stored.
 
+How often a card comes back is set by the chance of remembering it that FSRS aims for when it next comes back (its *target recall*): 0.9 normally. After answering a card, a logged-in user can choose under *Card options* to see it *More often* (0.95), *Less often* (0.85) or *Rarely* (0.8), which reschedules it at once. The effect compounds: after the second, third and fourth right answers, a card comes back after about 2, 11 and 46 days normally, but after 1, 3 and 8 days (more often), 4, 31 and 174 (less often) or 8, 76 and 525 (rarely). A user can also hide a card, from its question or its result, so that it is never shown again; hiding a card not yet answered does not count towards the day's new cards. Hidden cards, and cards with a changed frequency, are listed at `settings/` (linked from the index), where each choice can be undone.
+
+The app's own pages take the slugs `settings`, `progress` and `reference`, which a subject or deck therefore cannot have.
+
+
 ## Images
 
 Card images are stored with the site's media files, in `<FLASHDECK_UPLOAD_DIR>/<subject>/`, under random names: a file named after its subject (`beagle.jpg`) would give the answer away in the page. Photographs (PNG, JPEG and WebP) are reduced to `FLASHDECK_IMAGE_MAX_SIZE`, turned the right way up and stripped of their metadata (EXIF, XMP and comments), which often names what they show; only their colour profile is kept. SVG images are stored as they are. An SVG file can contain scripts, so only trusted editors should be able to upload one. A replaced image's file is deleted, as is a deleted card's.

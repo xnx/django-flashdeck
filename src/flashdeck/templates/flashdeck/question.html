@@ -4,6 +4,14 @@
 {% include "flashdeck/_assets.html" %}
 <div class="flashdeck">
   {% include "flashdeck/_crumbs.html" %}
+  {% if hidden_card %}
+  <form method="post" action="{{ scope_url }}" class="flashdeck-notice">
+    {% csrf_token %}
+    <input type="hidden" name="card" value="{{ hidden_card.pk }}">
+    “{{ hidden_card }}” will not be shown again.
+    <button type="submit" name="hidden" value="0" class="flashdeck-link">Undo</button>
+  </form>
+  {% endif %}
   <form method="post" action="{{ scope_url }}" class="flashdeck-card" data-flashdeck-form>
     {% csrf_token %}
     <input type="hidden" name="card" value="{{ card.pk }}">
@@ -24,5 +32,12 @@
       <a class="flashdeck-button" href="{{ scope_url }}?after={{ card.pk }}">Skip</a>
     </div>
   </form>
+  {% if logged_in %}
+  <form method="post" action="{{ scope_url }}" class="flashdeck-minor">
+    {% csrf_token %}
+    <input type="hidden" name="card" value="{{ card.pk }}">
+    <button type="submit" name="hidden" value="1" class="flashdeck-link">Never show this card again</button>
+  </form>
+  {% endif %}
 </div>
 {% endblock %}
