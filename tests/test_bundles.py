@@ -177,3 +177,20 @@ def test_a_file_too_large_in_a_zip_is_refused(db, tmp_path, monkeypatch):
         bundle.writestr("images/beagle.png", png())  # more than 100 bytes
     with pytest.raises(BundleError, match="larger than 20 MB"):
         import_bundle(path)
+
+
+def test_an_update_replaces_only_a_changed_image(db, tmp_path):
+    path = write_bundle(tmp_path / "french")
+    import_bundle(path)
+    first = Card.objects.get(key="beagle").image.name
+    import_bundle(path, update=True)
+    assert Card.objects.get(key="beagle").image.name == first  # the same image
+
+    out = io.BytesIO()
+    Image.new("RGB", (40, 30), "navy").save(out, "PNG")
+    (path / "images" / "beagle.png").write_bytes(out.getvalue())
+    import_bundle(path, update=True)
+    beagle = Card.objects.get(key="beagle")
+    assert beagle.image.name != first
+    with beagle.image.open("rb") as image:
+        assert Image.open(image).getpixel((0, 0)) == (0, 0, 128)

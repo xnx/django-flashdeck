@@ -15,6 +15,7 @@ from django.core.files import File
 from django.core.validators import validate_slug
 from django.db import transaction
 
+from .images import prepare_image
 from .manifest import FORMAT, MANIFEST, dump_manifest
 from .marking import normalise
 from .models import RESERVED_SLUGS, Answer, Card, Deck, Subject
@@ -73,8 +74,8 @@ class _Source:
 def import_bundle(path, *, update=False):
     """Imports a bundle, adding the subject, decks and cards that are not on the
     site (matched by slug and by key). With `update`, existing ones are updated
-    too, except that answers accepted on the site are kept, images already on a
-    card are not replaced, and whether a deck is public is left as it is. Returns
+    too, except that answers accepted on the site are kept, an image is replaced
+    only if it has changed, and whether a deck is public is left as it is. Returns
     counts of what was done."""
     source = _Source(path)
     try:
@@ -160,10 +161,10 @@ def _import_card(deck, data, position, source, update, counts):
     card.image_licence = _text(data.get("image_licence"), f"{where}: image_licence")
     card.position = position
     image = data.get("image")
-    if image and not card.image:
-        card.image = File(
-            io.BytesIO(source.read(image)), name=PurePosixPath(image).name
-        )
+    if image:
+        content = source.read(image)
+        if not card.image or _image_changed(card, content, image):
+            card.image = File(io.BytesIO(content), name=PurePosixPath(image).name)
     if not card.prompt and not card.image:
         raise BundleError(f"{where}: a card needs a prompt, an image or both.")
     try:
@@ -189,6 +190,18 @@ def _import_card(deck, data, position, source, update, counts):
     for answer in existing[len(answers) :]:
         answer.delete()
     counts["cards created" if new else "cards updated"] += 1
+
+
+def _image_changed(card, content, name):
+    """Whether an image in a bundle differs from the card's, as it would be stored
+    (reduced and stripped of metadata), so that importing the same image again
+    leaves the card's file alone."""
+    prepared = prepare_image(io.BytesIO(content), name).read()
+    try:
+        with card.image.open("rb") as stored:
+            return stored.read() != prepared
+    except FileNotFoundError:
+        return True
 
 
 def _distinct(forms, exclude):

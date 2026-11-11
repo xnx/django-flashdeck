@@ -29,8 +29,8 @@ class ImportForm(forms.Form):
         required=False,
         label="Update what is already on the site",
         help_text="Subjects, decks and cards already here are updated from the "
-        "bundle; answers accepted here are kept, and so are their images and "
-        "whether each deck is public. Otherwise they are left alone and only new "
+        "bundle; answers accepted here are kept, images are replaced only if they "
+        "have changed, and whether each deck is public is kept. Otherwise they are left alone and only new "
         "ones are added.",
     )
 

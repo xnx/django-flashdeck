@@ -16,8 +16,8 @@ class Command(BaseCommand):
             "--update",
             action="store_true",
             help="Also update existing subjects, decks and cards from the bundle. "
-            "Answers accepted on the site are kept, images already on a card are not "
-            "replaced, and whether a deck is public is left as it is.",
+            "Answers accepted on the site are kept, an image is replaced only if it "
+            "has changed, and whether a deck is public is left as it is.",
         )
 
     def handle(self, bundle, update, **options):
