@@ -2,9 +2,13 @@
 
 The django-flashdeck package adds flashcards to a Django site. A card's prompt is text, an image or both, and its answers are typed and marked as right, nearly right or wrong. A card may have several answers, each marked separately, such as the six persons of a conjugated verb. Logged-in users get *spaced repetition*: each card comes back at increasing intervals, timed for just before it would be forgotten. Cards are grouped into *decks* (topics) within *subjects* (such as French or dog breeds), and a subject's decks are written, moved between sites and passed on as *bundles*: a YAML file and its images.
 
-The package needs Django 5.2 or later, and works with or without Wagtail.
+The package needs Python 3.12 or later and Django 5.2 or later, and works with or without Wagtail. Decks of French verbs and of the circuit symbols of GCSE Physics, as bundles, are in [flashcard-decks](https://github.com/xnx/flashcard-decks); it runs at https://scipython.com/apps/flashcards/.
 
 ## Installation
+
+```bash
+pip install django-flashdeck            # or "django-flashdeck[wagtail]"
+```
 
 Add the app and django-modelcluster (which it uses for editing a card's answers inline) to `INSTALLED_APPS`, include its URLs and migrate:
 
@@ -161,7 +165,15 @@ A script that generates a bundle can write its `cards.yaml` with `flashdeck.mani
 The package has its own tests and settings (in `tests/`), independent of any site:
 
 ```bash
-uv run pytest packages/django-flashdeck
+uv sync --group dev
+uv run pytest
+uv run ruff check . && uv run ruff format --check .
 ```
 
-The package is kept in the scipython.com repository (`xnx/scipython3`, in `packages/django-flashdeck`) until its licence is decided. Its classifier `Private :: Do Not Upload` makes PyPI refuse an upload until then. `git subtree split --prefix packages/django-flashdeck -b flashdeck-only` makes a branch of its own history, from which it can become a repository of its own.
+CI runs them with Python 3.12 to 3.14 and Django 5.2 to 6.1, and treats any warning raised in the package's own code, such as of a deprecation, as an error.
+
+To release a new version, change `version` in `pyproject.toml`, add it to `CHANGELOG.md`, commit, and push a tag such as `v0.2.0`. The Release workflow then publishes it to PyPI, by trusted publishing.
+
+## Licence
+
+The django-flashdeck package is licensed under the BSD 3-Clause License (see `LICENSE`).

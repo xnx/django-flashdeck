@@ -34,11 +34,9 @@ def new_cards_left(user):
     midnight = timezone.make_aware(datetime.combine(timezone.localdate(), time.min))
     # A card hidden before it was ever answered has no FSRS state, and was not
     # started.
-    started = (
-        CardState.objects.filter(user=user, created__gte=midnight)
-        .exclude(fsrs=None)
-        .count()
-    )
+    started = CardState.objects.filter(
+        user=user, created__gte=midnight, fsrs__isnull=False
+    ).count()
     return setting("NEW_CARDS_PER_DAY") - started
 
 

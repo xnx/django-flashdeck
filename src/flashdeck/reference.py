@@ -2,7 +2,6 @@
 subject's *items*, each being the cards that share a key across its decks (for
 verbs, each verb in every tense)."""
 
-import os
 from dataclasses import dataclass, field
 
 from .marking import loosen
@@ -96,8 +95,14 @@ def short_titles(decks):
     "Irregular verbs: ", which repeats on an item's page."""
     titles = {deck.pk: deck.title for deck in decks}
     if len(titles) > 1:
-        common = os.path.commonprefix(list(titles.values()))
-        cut = common.rfind(": ")
+        # The prefix that the first and last in alphabetical order share is the
+        # one that they all do.
+        first, last = min(titles.values()), max(titles.values())
+        length = next(
+            (i for i, (a, b) in enumerate(zip(first, last, strict=False)) if a != b),
+            min(len(first), len(last)),
+        )
+        cut = first[:length].rfind(": ")
         if cut > 0:
             return {pk: title[cut + 2 :] for pk, title in titles.items()}
     return titles

@@ -1,0 +1,23 @@
+# Publishes a release to PyPI when a tag such as v0.2.0 is pushed, by trusted
+# publishing (no token is stored): on PyPI, the project's publisher is this
+# repository, this workflow (release.yml) and the environment "pypi".
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+      - name: The tag matches the version in pyproject.toml
+        run: test "v$(uv version --short)" = "$GITHUB_REF_NAME"
+      - run: uv build
+      - run: uv publish --trusted-publishing always
